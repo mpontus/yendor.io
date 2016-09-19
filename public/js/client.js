@@ -13,14 +13,14 @@ var play = _interopRequire(require("./play"));
 },{"./play":2}],2:[function(require,module,exports){
 "use strict";
 
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
+var Terminal = require("term.js");
+var io = require("socket.io-client");
 
-module.exports = play;
-
-var Terminal = _interopRequire(require("term.js"));
-
-var io = _interopRequire(require("socket.io-client"));
-
+/**
+ * Get dimensions of a single char inside the element
+ *
+ * @param {Node} element Element for which to deremine the char size
+ */
 function getCharSize(element) {
   var temp = document.createElement("span");
   temp.innerHTML = "x";
@@ -32,22 +32,28 @@ function getCharSize(element) {
   return size;
 }
 
-function play(element) {
-  var _options = arguments[1] === undefined ? {} : arguments[1];
-
-  var _defaults = {
-    cols: 80,
-    rows: 24 };
-
-  var options = Object.assign({}, _defaults, _options);
+/**
+ * Add terminal to the element and initialize new game session
+ *
+ * @param {Node} element Container element for the terminal
+ * @param {Object} options Game session options
+ */
+function play(element, _options) {
+  var options = Object.assign({
+    w: 80,
+    h: 24 }, _options);
 
   if (!options.game) {
-    throw new Error("Option 'game' must be specified.");
+    throw new Error("Game must be specified in options.");
   }
 
   var socket = io({ query: "game=" + encodeURIComponent(options.game) });
 
+  console.log("connecting");
   socket.on("connect", function () {
+    console.log("connected");
+
+    // Initialize the terminal
     var term = new Terminal({
       cols: options.cols,
       rows: options.rows,
@@ -56,24 +62,33 @@ function play(element) {
 
     term.open(element);
 
+    // Resize the terminal to accomidate required size
     var charSize = getCharSize(element);
     element.style.width = options.cols * charSize.width + "px";
     element.style.height = options.rows * charSize.height + "px";
 
+    // Request game TTY to be resized to required size
+    socket.emit("resize", {
+      w: options.cols,
+      h: options.rows });
+
+    // Handle IO
     term.on("data", function (data) {
       socket.emit("data", data);
     });
-
     socket.on("data", function (data) {
       term.write(data);
     });
 
+    // Destroy terminal after disconnecting from the server
     socket.on("disconnect", function () {
       term.destroy();
     });
   });
 }
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi9ob21lL21pY2hhZWwvcHJvamVjdHMvbm9kZS95ZW5kb3IuaW8vY2xpZW50L3BsYXkuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7OztpQkFld0IsSUFBSTs7SUFmckIsUUFBUSwyQkFBTSxTQUFTOztJQUN2QixFQUFFLDJCQUFNLGtCQUFrQjs7QUFFakMsU0FBUyxXQUFXLENBQUUsT0FBTyxFQUFFO0FBQzdCLE1BQU0sSUFBSSxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsTUFBTSxDQUFDLENBQUM7QUFDNUMsTUFBSSxDQUFDLFNBQVMsR0FBRyxHQUFHLENBQUM7QUFDckIsU0FBTyxDQUFDLFdBQVcsQ0FBQyxJQUFJLENBQUMsQ0FBQztBQUMxQixNQUFNLElBQUksR0FBRztBQUNYLFNBQUssRUFBRSxJQUFJLENBQUMsV0FBVztBQUN2QixVQUFNLEVBQUUsSUFBSSxDQUFDLFlBQVksRUFDMUIsQ0FBQztBQUNGLFNBQU8sQ0FBQyxXQUFXLENBQUMsSUFBSSxDQUFDLENBQUM7QUFDMUIsU0FBTyxJQUFJLENBQUM7Q0FDYjs7QUFFYyxTQUFTLElBQUksQ0FBRSxPQUFPLEVBQWlCO01BQWYsUUFBUSxnQ0FBRyxFQUFFOztBQUNsRCxNQUFNLFNBQVMsR0FBRztBQUNoQixRQUFJLEVBQUUsRUFBRTtBQUNSLFFBQUksRUFBRSxFQUFFLEVBQ1QsQ0FBQzs7QUFFRixNQUFNLE9BQU8sR0FBRyxNQUFNLENBQUMsTUFBTSxDQUFDLEVBQUUsRUFBRSxTQUFTLEVBQUUsUUFBUSxDQUFDLENBQUM7O0FBRXZELE1BQUksQ0FBQyxPQUFPLENBQUMsSUFBSSxFQUFFO0FBQ2pCLFVBQU0sSUFBSSxLQUFLLENBQUMsa0NBQWtDLENBQUMsQ0FBQztHQUNyRDs7QUFFRCxNQUFNLE1BQU0sR0FBRyxFQUFFLENBQUMsRUFBQyxLQUFLLEVBQUUsT0FBTyxHQUFDLGtCQUFrQixDQUFDLE9BQU8sQ0FBQyxJQUFJLENBQUMsRUFBQyxDQUFDLENBQUM7O0FBRXJFLFFBQU0sQ0FBQyxFQUFFLENBQUMsU0FBUyxFQUFFLFlBQU07QUFDekIsUUFBTSxJQUFJLEdBQUcsSUFBSSxRQUFRLENBQUM7QUFDeEIsVUFBSSxFQUFFLE9BQU8sQ0FBQyxJQUFJO0FBQ2xCLFVBQUksRUFBRSxPQUFPLENBQUMsSUFBSTtBQUNsQixpQkFBVyxFQUFFLEtBQUs7S0FDbkIsQ0FBQyxDQUFDOztBQUVILFFBQUksQ0FBQyxJQUFJLENBQUMsT0FBTyxDQUFDLENBQUM7O0FBRW5CLFFBQU0sUUFBUSxHQUFHLFdBQVcsQ0FBQyxPQUFPLENBQUMsQ0FBQztBQUN0QyxXQUFPLENBQUMsS0FBSyxDQUFDLEtBQUssR0FBRyxPQUFPLENBQUMsSUFBSSxHQUFHLFFBQVEsQ0FBQyxLQUFLLEdBQUcsSUFBSSxDQUFDO0FBQzNELFdBQU8sQ0FBQyxLQUFLLENBQUMsTUFBTSxHQUFHLE9BQU8sQ0FBQyxJQUFJLEdBQUcsUUFBUSxDQUFDLE1BQU0sR0FBRyxJQUFJLENBQUM7O0FBRTdELFFBQUksQ0FBQyxFQUFFLENBQUMsTUFBTSxFQUFFLFVBQVMsSUFBSSxFQUFFO0FBQzdCLFlBQU0sQ0FBQyxJQUFJLENBQUMsTUFBTSxFQUFFLElBQUksQ0FBQyxDQUFDO0tBQzNCLENBQUMsQ0FBQzs7QUFFSCxVQUFNLENBQUMsRUFBRSxDQUFDLE1BQU0sRUFBRSxVQUFTLElBQUksRUFBRTtBQUMvQixVQUFJLENBQUMsS0FBSyxDQUFDLElBQUksQ0FBQyxDQUFDO0tBQ2xCLENBQUMsQ0FBQzs7QUFFSCxVQUFNLENBQUMsRUFBRSxDQUFDLFlBQVksRUFBRSxZQUFXO0FBQ2pDLFVBQUksQ0FBQyxPQUFPLEVBQUUsQ0FBQztLQUNoQixDQUFDLENBQUM7R0FDSixDQUFDLENBQUM7Q0FDSiIsImZpbGUiOiIvaG9tZS9taWNoYWVsL3Byb2plY3RzL25vZGUveWVuZG9yLmlvL2NsaWVudC9wbGF5LmpzIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IFRlcm1pbmFsIGZyb20gJ3Rlcm0uanMnO1xuaW1wb3J0IGlvIGZyb20gJ3NvY2tldC5pby1jbGllbnQnO1xuXG5mdW5jdGlvbiBnZXRDaGFyU2l6ZSAoZWxlbWVudCkge1xuICBjb25zdCB0ZW1wID0gZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnc3BhbicpO1xuICB0ZW1wLmlubmVySFRNTCA9ICd4JztcbiAgZWxlbWVudC5hcHBlbmRDaGlsZCh0ZW1wKTtcbiAgY29uc3Qgc2l6ZSA9IHtcbiAgICB3aWR0aDogdGVtcC5vZmZzZXRXaWR0aCxcbiAgICBoZWlnaHQ6IHRlbXAub2Zmc2V0SGVpZ2h0LFxuICB9O1xuICBlbGVtZW50LnJlbW92ZUNoaWxkKHRlbXApO1xuICByZXR1cm4gc2l6ZTtcbn1cblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gcGxheSAoZWxlbWVudCwgX29wdGlvbnMgPSB7fSkge1xuICBjb25zdCBfZGVmYXVsdHMgPSB7XG4gICAgY29sczogODAsXG4gICAgcm93czogMjQsXG4gIH07XG5cbiAgY29uc3Qgb3B0aW9ucyA9IE9iamVjdC5hc3NpZ24oe30sIF9kZWZhdWx0cywgX29wdGlvbnMpO1xuXG4gIGlmICghb3B0aW9ucy5nYW1lKSB7XG4gICAgdGhyb3cgbmV3IEVycm9yKFwiT3B0aW9uICdnYW1lJyBtdXN0IGJlIHNwZWNpZmllZC5cIik7XG4gIH1cblxuICBjb25zdCBzb2NrZXQgPSBpbyh7cXVlcnk6ICdnYW1lPScrZW5jb2RlVVJJQ29tcG9uZW50KG9wdGlvbnMuZ2FtZSl9KTtcblxuICBzb2NrZXQub24oJ2Nvbm5lY3QnLCAoKSA9PiB7XG4gICAgY29uc3QgdGVybSA9IG5ldyBUZXJtaW5hbCh7XG4gICAgICBjb2xzOiBvcHRpb25zLmNvbHMsXG4gICAgICByb3dzOiBvcHRpb25zLnJvd3MsXG4gICAgICBjdXJzb3JCbGluazogZmFsc2VcbiAgICB9KTtcblxuICAgIHRlcm0ub3BlbihlbGVtZW50KTtcblxuICAgIGNvbnN0IGNoYXJTaXplID0gZ2V0Q2hhclNpemUoZWxlbWVudCk7XG4gICAgZWxlbWVudC5zdHlsZS53aWR0aCA9IG9wdGlvbnMuY29scyAqIGNoYXJTaXplLndpZHRoICsgJ3B4JztcbiAgICBlbGVtZW50LnN0eWxlLmhlaWdodCA9IG9wdGlvbnMucm93cyAqIGNoYXJTaXplLmhlaWdodCArICdweCc7XG5cbiAgICB0ZXJtLm9uKCdkYXRhJywgZnVuY3Rpb24oZGF0YSkge1xuICAgICAgc29ja2V0LmVtaXQoJ2RhdGEnLCBkYXRhKTtcbiAgICB9KTtcblxuICAgIHNvY2tldC5vbignZGF0YScsIGZ1bmN0aW9uKGRhdGEpIHtcbiAgICAgIHRlcm0ud3JpdGUoZGF0YSk7XG4gICAgfSk7XG5cbiAgICBzb2NrZXQub24oJ2Rpc2Nvbm5lY3QnLCBmdW5jdGlvbigpIHtcbiAgICAgIHRlcm0uZGVzdHJveSgpO1xuICAgIH0pO1xuICB9KTtcbn1cblxuIl19
+
+module.exports = play;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi9ob21lL21pY2hhZWwvcHJvamVjdHMvbm9kZS95ZW5kb3IuaW8vY2xpZW50L3BsYXkuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFBQSxJQUFJLFFBQVEsR0FBRyxPQUFPLENBQUMsU0FBUyxDQUFDLENBQUM7QUFDbEMsSUFBSSxFQUFFLEdBQUcsT0FBTyxDQUFDLGtCQUFrQixDQUFDLENBQUM7Ozs7Ozs7QUFPckMsU0FBUyxXQUFXLENBQUUsT0FBTyxFQUFFO0FBQzdCLE1BQU0sSUFBSSxHQUFHLFFBQVEsQ0FBQyxhQUFhLENBQUMsTUFBTSxDQUFDLENBQUM7QUFDNUMsTUFBSSxDQUFDLFNBQVMsR0FBRyxHQUFHLENBQUM7QUFDckIsU0FBTyxDQUFDLFdBQVcsQ0FBQyxJQUFJLENBQUMsQ0FBQztBQUMxQixNQUFNLElBQUksR0FBRztBQUNYLFNBQUssRUFBRSxJQUFJLENBQUMsV0FBVztBQUN2QixVQUFNLEVBQUUsSUFBSSxDQUFDLFlBQVksRUFDMUIsQ0FBQztBQUNGLFNBQU8sQ0FBQyxXQUFXLENBQUMsSUFBSSxDQUFDLENBQUM7QUFDMUIsU0FBTyxJQUFJLENBQUM7Q0FDYjs7Ozs7Ozs7QUFRRCxTQUFTLElBQUksQ0FBRSxPQUFPLEVBQUUsUUFBUSxFQUFFO0FBQ2hDLE1BQUksT0FBTyxHQUFHLE1BQU0sQ0FBQyxNQUFNLENBQUM7QUFDMUIsS0FBQyxFQUFFLEVBQUU7QUFDTCxLQUFDLEVBQUUsRUFBRSxFQUNOLEVBQUUsUUFBUSxDQUFDLENBQUM7O0FBRWIsTUFBSSxDQUFDLE9BQU8sQ0FBQyxJQUFJLEVBQUU7QUFDakIsVUFBTSxJQUFJLEtBQUssQ0FBQyxvQ0FBb0MsQ0FBQyxDQUFDO0dBQ3ZEOztBQUVELE1BQUksTUFBTSxHQUFHLEVBQUUsQ0FBQyxFQUFDLEtBQUssRUFBRSxPQUFPLEdBQUMsa0JBQWtCLENBQUMsT0FBTyxDQUFDLElBQUksQ0FBQyxFQUFDLENBQUMsQ0FBQzs7QUFFbkUsU0FBTyxDQUFDLEdBQUcsQ0FBQyxZQUFZLENBQUMsQ0FBQztBQUMxQixRQUFNLENBQUMsRUFBRSxDQUFDLFNBQVMsRUFBRSxZQUFNO0FBQ3pCLFdBQU8sQ0FBQyxHQUFHLENBQUMsV0FBVyxDQUFDLENBQUM7OztBQUd6QixRQUFJLElBQUksR0FBRyxJQUFJLFFBQVEsQ0FBQztBQUN0QixVQUFJLEVBQUUsT0FBTyxDQUFDLElBQUk7QUFDbEIsVUFBSSxFQUFFLE9BQU8sQ0FBQyxJQUFJO0FBQ2xCLGlCQUFXLEVBQUUsS0FBSztLQUNuQixDQUFDLENBQUM7O0FBRUgsUUFBSSxDQUFDLElBQUksQ0FBQyxPQUFPLENBQUMsQ0FBQzs7O0FBR25CLFFBQUksUUFBUSxHQUFHLFdBQVcsQ0FBQyxPQUFPLENBQUMsQ0FBQztBQUNwQyxXQUFPLENBQUMsS0FBSyxDQUFDLEtBQUssR0FBRyxPQUFPLENBQUMsSUFBSSxHQUFHLFFBQVEsQ0FBQyxLQUFLLEdBQUcsSUFBSSxDQUFDO0FBQzNELFdBQU8sQ0FBQyxLQUFLLENBQUMsTUFBTSxHQUFHLE9BQU8sQ0FBQyxJQUFJLEdBQUcsUUFBUSxDQUFDLE1BQU0sR0FBRyxJQUFJLENBQUM7OztBQUc3RCxVQUFNLENBQUMsSUFBSSxDQUFDLFFBQVEsRUFBRTtBQUNwQixPQUFDLEVBQUUsT0FBTyxDQUFDLElBQUk7QUFDZixPQUFDLEVBQUUsT0FBTyxDQUFDLElBQUksRUFDaEIsQ0FBQyxDQUFDOzs7QUFHSCxRQUFJLENBQUMsRUFBRSxDQUFDLE1BQU0sRUFBRSxVQUFTLElBQUksRUFBRTtBQUM3QixZQUFNLENBQUMsSUFBSSxDQUFDLE1BQU0sRUFBRSxJQUFJLENBQUMsQ0FBQztLQUMzQixDQUFDLENBQUM7QUFDSCxVQUFNLENBQUMsRUFBRSxDQUFDLE1BQU0sRUFBRSxVQUFTLElBQUksRUFBRTtBQUMvQixVQUFJLENBQUMsS0FBSyxDQUFDLElBQUksQ0FBQyxDQUFDO0tBQ2xCLENBQUMsQ0FBQzs7O0FBR0gsVUFBTSxDQUFDLEVBQUUsQ0FBQyxZQUFZLEVBQUUsWUFBVztBQUNqQyxVQUFJLENBQUMsT0FBTyxFQUFFLENBQUM7S0FDaEIsQ0FBQyxDQUFDO0dBQ0osQ0FBQyxDQUFDO0NBQ0o7O0FBRUQsTUFBTSxDQUFDLE9BQU8sR0FBRyxJQUFJLENBQUMiLCJmaWxlIjoiL2hvbWUvbWljaGFlbC9wcm9qZWN0cy9ub2RlL3llbmRvci5pby9jbGllbnQvcGxheS5qcyIsInNvdXJjZXNDb250ZW50IjpbInZhciBUZXJtaW5hbCA9IHJlcXVpcmUoJ3Rlcm0uanMnKTtcbnZhciBpbyA9IHJlcXVpcmUoJ3NvY2tldC5pby1jbGllbnQnKTtcblxuLyoqXG4gKiBHZXQgZGltZW5zaW9ucyBvZiBhIHNpbmdsZSBjaGFyIGluc2lkZSB0aGUgZWxlbWVudFxuICpcbiAqIEBwYXJhbSB7Tm9kZX0gZWxlbWVudCBFbGVtZW50IGZvciB3aGljaCB0byBkZXJlbWluZSB0aGUgY2hhciBzaXplXG4gKi9cbmZ1bmN0aW9uIGdldENoYXJTaXplIChlbGVtZW50KSB7XG4gIGNvbnN0IHRlbXAgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCdzcGFuJyk7XG4gIHRlbXAuaW5uZXJIVE1MID0gJ3gnO1xuICBlbGVtZW50LmFwcGVuZENoaWxkKHRlbXApO1xuICBjb25zdCBzaXplID0ge1xuICAgIHdpZHRoOiB0ZW1wLm9mZnNldFdpZHRoLFxuICAgIGhlaWdodDogdGVtcC5vZmZzZXRIZWlnaHQsXG4gIH07XG4gIGVsZW1lbnQucmVtb3ZlQ2hpbGQodGVtcCk7XG4gIHJldHVybiBzaXplO1xufVxuXG4vKipcbiAqIEFkZCB0ZXJtaW5hbCB0byB0aGUgZWxlbWVudCBhbmQgaW5pdGlhbGl6ZSBuZXcgZ2FtZSBzZXNzaW9uXG4gKlxuICogQHBhcmFtIHtOb2RlfSBlbGVtZW50IENvbnRhaW5lciBlbGVtZW50IGZvciB0aGUgdGVybWluYWxcbiAqIEBwYXJhbSB7T2JqZWN0fSBvcHRpb25zIEdhbWUgc2Vzc2lvbiBvcHRpb25zXG4gKi9cbmZ1bmN0aW9uIHBsYXkgKGVsZW1lbnQsIF9vcHRpb25zKSB7XG4gIHZhciBvcHRpb25zID0gT2JqZWN0LmFzc2lnbih7XG4gICAgdzogODAsXG4gICAgaDogMjQsXG4gIH0sIF9vcHRpb25zKTtcblxuICBpZiAoIW9wdGlvbnMuZ2FtZSkge1xuICAgIHRocm93IG5ldyBFcnJvcihcIkdhbWUgbXVzdCBiZSBzcGVjaWZpZWQgaW4gb3B0aW9ucy5cIik7XG4gIH1cblxuICB2YXIgc29ja2V0ID0gaW8oe3F1ZXJ5OiAnZ2FtZT0nK2VuY29kZVVSSUNvbXBvbmVudChvcHRpb25zLmdhbWUpfSk7XG5cbiAgY29uc29sZS5sb2coJ2Nvbm5lY3RpbmcnKTtcbiAgc29ja2V0Lm9uKCdjb25uZWN0JywgKCkgPT4ge1xuICAgIGNvbnNvbGUubG9nKCdjb25uZWN0ZWQnKTtcblxuICAgIC8vIEluaXRpYWxpemUgdGhlIHRlcm1pbmFsXG4gICAgdmFyIHRlcm0gPSBuZXcgVGVybWluYWwoe1xuICAgICAgY29sczogb3B0aW9ucy5jb2xzLFxuICAgICAgcm93czogb3B0aW9ucy5yb3dzLFxuICAgICAgY3Vyc29yQmxpbms6IGZhbHNlXG4gICAgfSk7XG5cbiAgICB0ZXJtLm9wZW4oZWxlbWVudCk7XG5cbiAgICAvLyBSZXNpemUgdGhlIHRlcm1pbmFsIHRvIGFjY29taWRhdGUgcmVxdWlyZWQgc2l6ZVxuICAgIHZhciBjaGFyU2l6ZSA9IGdldENoYXJTaXplKGVsZW1lbnQpO1xuICAgIGVsZW1lbnQuc3R5bGUud2lkdGggPSBvcHRpb25zLmNvbHMgKiBjaGFyU2l6ZS53aWR0aCArICdweCc7XG4gICAgZWxlbWVudC5zdHlsZS5oZWlnaHQgPSBvcHRpb25zLnJvd3MgKiBjaGFyU2l6ZS5oZWlnaHQgKyAncHgnO1xuXG4gICAgLy8gUmVxdWVzdCBnYW1lIFRUWSB0byBiZSByZXNpemVkIHRvIHJlcXVpcmVkIHNpemVcbiAgICBzb2NrZXQuZW1pdCgncmVzaXplJywge1xuICAgICAgdzogb3B0aW9ucy5jb2xzLFxuICAgICAgaDogb3B0aW9ucy5yb3dzLFxuICAgIH0pO1xuXG4gICAgLy8gSGFuZGxlIElPXG4gICAgdGVybS5vbignZGF0YScsIGZ1bmN0aW9uKGRhdGEpIHtcbiAgICAgIHNvY2tldC5lbWl0KCdkYXRhJywgZGF0YSk7XG4gICAgfSk7XG4gICAgc29ja2V0Lm9uKCdkYXRhJywgZnVuY3Rpb24oZGF0YSkge1xuICAgICAgdGVybS53cml0ZShkYXRhKTtcbiAgICB9KTtcblxuICAgIC8vIERlc3Ryb3kgdGVybWluYWwgYWZ0ZXIgZGlzY29ubmVjdGluZyBmcm9tIHRoZSBzZXJ2ZXJcbiAgICBzb2NrZXQub24oJ2Rpc2Nvbm5lY3QnLCBmdW5jdGlvbigpIHtcbiAgICAgIHRlcm0uZGVzdHJveSgpO1xuICAgIH0pO1xuICB9KTtcbn1cblxubW9kdWxlLmV4cG9ydHMgPSBwbGF5O1xuIl19
 },{"socket.io-client":4,"term.js":3}],3:[function(require,module,exports){
 module.exports = require('./lib/index.js');
 
@@ -10000,7 +10015,101 @@ function on(obj, ev, fn) {
   };
 }
 
-},{}],7:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+
+/**
+ * Module dependencies.
+ */
+
+var url = require('./url');
+var parser = require('socket.io-parser');
+var Manager = require('./manager');
+var debug = require('debug')('socket.io-client');
+
+/**
+ * Module exports.
+ */
+
+module.exports = exports = lookup;
+
+/**
+ * Managers cache.
+ */
+
+var cache = exports.managers = {};
+
+/**
+ * Looks up an existing `Manager` for multiplexing.
+ * If the user summons:
+ *
+ *   `io('http://localhost/a');`
+ *   `io('http://localhost/b');`
+ *
+ * We reuse the existing instance based on same scheme/port/host,
+ * and we initialize sockets for each namespace.
+ *
+ * @api public
+ */
+
+function lookup(uri, opts) {
+  if (typeof uri == 'object') {
+    opts = uri;
+    uri = undefined;
+  }
+
+  opts = opts || {};
+
+  var parsed = url(uri);
+  var source = parsed.source;
+  var id = parsed.id;
+  var path = parsed.path;
+  var sameNamespace = cache[id] && path in cache[id].nsps;
+  var newConnection = opts.forceNew || opts['force new connection'] ||
+                      false === opts.multiplex || sameNamespace;
+
+  var io;
+
+  if (newConnection) {
+    debug('ignoring socket cache for %s', source);
+    io = Manager(source, opts);
+  } else {
+    if (!cache[id]) {
+      debug('new io instance for %s', source);
+      cache[id] = Manager(source, opts);
+    }
+    io = cache[id];
+  }
+
+  return io.socket(parsed.path);
+}
+
+/**
+ * Protocol version.
+ *
+ * @api public
+ */
+
+exports.protocol = parser.protocol;
+
+/**
+ * `connect`.
+ *
+ * @param {String} uri
+ * @api public
+ */
+
+exports.connect = lookup;
+
+/**
+ * Expose constructors for standalone build.
+ *
+ * @api public
+ */
+
+exports.Manager = require('./manager');
+exports.Socket = require('./socket');
+
+},{"./manager":12,"./socket":13,"./url":11,"debug":14,"socket.io-parser":15}],7:[function(require,module,exports){
 var punycode = { encode : function (s) { return s } };
 
 exports.parse = urlParse;
@@ -10606,101 +10715,7 @@ function parseHost(host) {
   return out;
 }
 
-},{"querystring":11}],4:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var url = require('./url');
-var parser = require('socket.io-parser');
-var Manager = require('./manager');
-var debug = require('debug')('socket.io-client');
-
-/**
- * Module exports.
- */
-
-module.exports = exports = lookup;
-
-/**
- * Managers cache.
- */
-
-var cache = exports.managers = {};
-
-/**
- * Looks up an existing `Manager` for multiplexing.
- * If the user summons:
- *
- *   `io('http://localhost/a');`
- *   `io('http://localhost/b');`
- *
- * We reuse the existing instance based on same scheme/port/host,
- * and we initialize sockets for each namespace.
- *
- * @api public
- */
-
-function lookup(uri, opts) {
-  if (typeof uri == 'object') {
-    opts = uri;
-    uri = undefined;
-  }
-
-  opts = opts || {};
-
-  var parsed = url(uri);
-  var source = parsed.source;
-  var id = parsed.id;
-  var path = parsed.path;
-  var sameNamespace = cache[id] && path in cache[id].nsps;
-  var newConnection = opts.forceNew || opts['force new connection'] ||
-                      false === opts.multiplex || sameNamespace;
-
-  var io;
-
-  if (newConnection) {
-    debug('ignoring socket cache for %s', source);
-    io = Manager(source, opts);
-  } else {
-    if (!cache[id]) {
-      debug('new io instance for %s', source);
-      cache[id] = Manager(source, opts);
-    }
-    io = cache[id];
-  }
-
-  return io.socket(parsed.path);
-}
-
-/**
- * Protocol version.
- *
- * @api public
- */
-
-exports.protocol = parser.protocol;
-
-/**
- * `connect`.
- *
- * @param {String} uri
- * @api public
- */
-
-exports.connect = lookup;
-
-/**
- * Expose constructors for standalone build.
- *
- * @api public
- */
-
-exports.Manager = require('./manager');
-exports.Socket = require('./socket');
-
-},{"./manager":13,"./socket":14,"./url":12,"debug":15,"socket.io-parser":16}],11:[function(require,module,exports){
+},{"querystring":16}],16:[function(require,module,exports){
 
 /**
  * Object#toString() ref for stringify().
@@ -11182,7 +11197,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -11352,7 +11367,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":18}],12:[function(require,module,exports){
+},{"./debug":18}],11:[function(require,module,exports){
 var global=self;
 /**
  * Module dependencies.
@@ -11430,7 +11445,7 @@ function url(uri, loc){
   return obj;
 }
 
-},{"debug":15,"parseuri":19}],13:[function(require,module,exports){
+},{"debug":14,"parseuri":19}],12:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11989,7 +12004,7 @@ Manager.prototype.onreconnect = function(){
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":10,"./socket":14,"backo2":23,"component-bind":22,"component-emitter":17,"debug":15,"engine.io-client":20,"indexof":21,"socket.io-parser":16}],14:[function(require,module,exports){
+},{"./on":10,"./socket":13,"backo2":23,"component-bind":21,"component-emitter":17,"debug":14,"engine.io-client":20,"indexof":22,"socket.io-parser":15}],13:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12403,7 +12418,7 @@ Socket.prototype.compress = function(compress){
   return this;
 };
 
-},{"./on":10,"component-bind":22,"component-emitter":17,"debug":15,"has-binary":25,"socket.io-parser":16,"to-array":24}],26:[function(require,module,exports){
+},{"./on":10,"component-bind":21,"component-emitter":17,"debug":14,"has-binary":25,"socket.io-parser":15,"to-array":24}],26:[function(require,module,exports){
 var global=self;
 module.exports = isBuf;
 
@@ -12459,42 +12474,6 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],22:[function(require,module,exports){
-/**
- * Slice reference.
- */
-
-var slice = [].slice;
-
-/**
- * Bind `obj` to `fn`.
- *
- * @param {Object} obj
- * @param {Function|String} fn or string
- * @return {Function}
- * @api public
- */
-
-module.exports = function(obj, fn){
-  if ('string' == typeof fn) fn = obj[fn];
-  if ('function' != typeof fn) throw new Error('bind() requires a function');
-  var args = slice.call(arguments, 2);
-  return function(){
-    return fn.apply(obj, args.concat(slice.call(arguments)));
-  }
-};
-
-},{}],21:[function(require,module,exports){
-
-var indexOf = [].indexOf;
-
-module.exports = function(arr, obj){
-  if (indexOf) return arr.indexOf(obj);
-  for (var i = 0; i < arr.length; ++i) {
-    if (arr[i] === obj) return i;
-  }
-  return -1;
-};
 },{}],23:[function(require,module,exports){
 
 /**
@@ -12582,6 +12561,42 @@ Backoff.prototype.setJitter = function(jitter){
 };
 
 
+},{}],22:[function(require,module,exports){
+
+var indexOf = [].indexOf;
+
+module.exports = function(arr, obj){
+  if (indexOf) return arr.indexOf(obj);
+  for (var i = 0; i < arr.length; ++i) {
+    if (arr[i] === obj) return i;
+  }
+  return -1;
+};
+},{}],21:[function(require,module,exports){
+/**
+ * Slice reference.
+ */
+
+var slice = [].slice;
+
+/**
+ * Bind `obj` to `fn`.
+ *
+ * @param {Object} obj
+ * @param {Function|String} fn or string
+ * @return {Function}
+ * @api public
+ */
+
+module.exports = function(obj, fn){
+  if ('string' == typeof fn) fn = obj[fn];
+  if ('function' != typeof fn) throw new Error('bind() requires a function');
+  var args = slice.call(arguments, 2);
+  return function(){
+    return fn.apply(obj, args.concat(slice.call(arguments)));
+  }
+};
+
 },{}],24:[function(require,module,exports){
 module.exports = toArray
 
@@ -12597,409 +12612,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],16:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var debug = require('debug')('socket.io-parser');
-var json = require('json3');
-var isArray = require('isarray');
-var Emitter = require('component-emitter');
-var binary = require('./binary');
-var isBuf = require('./is-buffer');
-
-/**
- * Protocol version.
- *
- * @api public
- */
-
-exports.protocol = 4;
-
-/**
- * Packet types.
- *
- * @api public
- */
-
-exports.types = [
-  'CONNECT',
-  'DISCONNECT',
-  'EVENT',
-  'ACK',
-  'ERROR',
-  'BINARY_EVENT',
-  'BINARY_ACK'
-];
-
-/**
- * Packet type `connect`.
- *
- * @api public
- */
-
-exports.CONNECT = 0;
-
-/**
- * Packet type `disconnect`.
- *
- * @api public
- */
-
-exports.DISCONNECT = 1;
-
-/**
- * Packet type `event`.
- *
- * @api public
- */
-
-exports.EVENT = 2;
-
-/**
- * Packet type `ack`.
- *
- * @api public
- */
-
-exports.ACK = 3;
-
-/**
- * Packet type `error`.
- *
- * @api public
- */
-
-exports.ERROR = 4;
-
-/**
- * Packet type 'binary event'
- *
- * @api public
- */
-
-exports.BINARY_EVENT = 5;
-
-/**
- * Packet type `binary ack`. For acks with binary arguments.
- *
- * @api public
- */
-
-exports.BINARY_ACK = 6;
-
-/**
- * Encoder constructor.
- *
- * @api public
- */
-
-exports.Encoder = Encoder;
-
-/**
- * Decoder constructor.
- *
- * @api public
- */
-
-exports.Decoder = Decoder;
-
-/**
- * A socket.io Encoder instance
- *
- * @api public
- */
-
-function Encoder() {}
-
-/**
- * Encode a packet as a single string if non-binary, or as a
- * buffer sequence, depending on packet type.
- *
- * @param {Object} obj - packet object
- * @param {Function} callback - function to handle encodings (likely engine.write)
- * @return Calls callback with Array of encodings
- * @api public
- */
-
-Encoder.prototype.encode = function(obj, callback){
-  debug('encoding packet %j', obj);
-
-  if (exports.BINARY_EVENT == obj.type || exports.BINARY_ACK == obj.type) {
-    encodeAsBinary(obj, callback);
-  }
-  else {
-    var encoding = encodeAsString(obj);
-    callback([encoding]);
-  }
-};
-
-/**
- * Encode packet as string.
- *
- * @param {Object} packet
- * @return {String} encoded
- * @api private
- */
-
-function encodeAsString(obj) {
-  var str = '';
-  var nsp = false;
-
-  // first is type
-  str += obj.type;
-
-  // attachments if we have them
-  if (exports.BINARY_EVENT == obj.type || exports.BINARY_ACK == obj.type) {
-    str += obj.attachments;
-    str += '-';
-  }
-
-  // if we have a namespace other than `/`
-  // we append it followed by a comma `,`
-  if (obj.nsp && '/' != obj.nsp) {
-    nsp = true;
-    str += obj.nsp;
-  }
-
-  // immediately followed by the id
-  if (null != obj.id) {
-    if (nsp) {
-      str += ',';
-      nsp = false;
-    }
-    str += obj.id;
-  }
-
-  // json data
-  if (null != obj.data) {
-    if (nsp) str += ',';
-    str += json.stringify(obj.data);
-  }
-
-  debug('encoded %j as %s', obj, str);
-  return str;
-}
-
-/**
- * Encode packet as 'buffer sequence' by removing blobs, and
- * deconstructing packet into object with placeholders and
- * a list of buffers.
- *
- * @param {Object} packet
- * @return {Buffer} encoded
- * @api private
- */
-
-function encodeAsBinary(obj, callback) {
-
-  function writeEncoding(bloblessData) {
-    var deconstruction = binary.deconstructPacket(bloblessData);
-    var pack = encodeAsString(deconstruction.packet);
-    var buffers = deconstruction.buffers;
-
-    buffers.unshift(pack); // add packet info to beginning of data list
-    callback(buffers); // write all the buffers
-  }
-
-  binary.removeBlobs(obj, writeEncoding);
-}
-
-/**
- * A socket.io Decoder instance
- *
- * @return {Object} decoder
- * @api public
- */
-
-function Decoder() {
-  this.reconstructor = null;
-}
-
-/**
- * Mix in `Emitter` with Decoder.
- */
-
-Emitter(Decoder.prototype);
-
-/**
- * Decodes an ecoded packet string into packet JSON.
- *
- * @param {String} obj - encoded packet
- * @return {Object} packet
- * @api public
- */
-
-Decoder.prototype.add = function(obj) {
-  var packet;
-  if ('string' == typeof obj) {
-    packet = decodeString(obj);
-    if (exports.BINARY_EVENT == packet.type || exports.BINARY_ACK == packet.type) { // binary packet's json
-      this.reconstructor = new BinaryReconstructor(packet);
-
-      // no attachments, labeled binary but no binary data to follow
-      if (this.reconstructor.reconPack.attachments === 0) {
-        this.emit('decoded', packet);
-      }
-    } else { // non-binary full packet
-      this.emit('decoded', packet);
-    }
-  }
-  else if (isBuf(obj) || obj.base64) { // raw binary data
-    if (!this.reconstructor) {
-      throw new Error('got binary data when not reconstructing a packet');
-    } else {
-      packet = this.reconstructor.takeBinaryData(obj);
-      if (packet) { // received final buffer
-        this.reconstructor = null;
-        this.emit('decoded', packet);
-      }
-    }
-  }
-  else {
-    throw new Error('Unknown type: ' + obj);
-  }
-};
-
-/**
- * Decode a packet String (JSON data)
- *
- * @param {String} str
- * @return {Object} packet
- * @api private
- */
-
-function decodeString(str) {
-  var p = {};
-  var i = 0;
-
-  // look up type
-  p.type = Number(str.charAt(0));
-  if (null == exports.types[p.type]) return error();
-
-  // look up attachments if type binary
-  if (exports.BINARY_EVENT == p.type || exports.BINARY_ACK == p.type) {
-    var buf = '';
-    while (str.charAt(++i) != '-') {
-      buf += str.charAt(i);
-      if (i == str.length) break;
-    }
-    if (buf != Number(buf) || str.charAt(i) != '-') {
-      throw new Error('Illegal attachments');
-    }
-    p.attachments = Number(buf);
-  }
-
-  // look up namespace (if any)
-  if ('/' == str.charAt(i + 1)) {
-    p.nsp = '';
-    while (++i) {
-      var c = str.charAt(i);
-      if (',' == c) break;
-      p.nsp += c;
-      if (i == str.length) break;
-    }
-  } else {
-    p.nsp = '/';
-  }
-
-  // look up id
-  var next = str.charAt(i + 1);
-  if ('' !== next && Number(next) == next) {
-    p.id = '';
-    while (++i) {
-      var c = str.charAt(i);
-      if (null == c || Number(c) != c) {
-        --i;
-        break;
-      }
-      p.id += str.charAt(i);
-      if (i == str.length) break;
-    }
-    p.id = Number(p.id);
-  }
-
-  // look up json data
-  if (str.charAt(++i)) {
-    try {
-      p.data = json.parse(str.substr(i));
-    } catch(e){
-      return error();
-    }
-  }
-
-  debug('decoded %s as %j', str, p);
-  return p;
-}
-
-/**
- * Deallocates a parser's resources
- *
- * @api public
- */
-
-Decoder.prototype.destroy = function() {
-  if (this.reconstructor) {
-    this.reconstructor.finishedReconstruction();
-  }
-};
-
-/**
- * A manager of a binary event's 'buffer sequence'. Should
- * be constructed whenever a packet of type BINARY_EVENT is
- * decoded.
- *
- * @param {Object} packet
- * @return {BinaryReconstructor} initialized reconstructor
- * @api private
- */
-
-function BinaryReconstructor(packet) {
-  this.reconPack = packet;
-  this.buffers = [];
-}
-
-/**
- * Method to be called when binary data received from connection
- * after a BINARY_EVENT packet.
- *
- * @param {Buffer | ArrayBuffer} binData - the raw binary data received
- * @return {null | Object} returns null if more binary data is expected or
- *   a reconstructed packet object if all buffers have been received.
- * @api private
- */
-
-BinaryReconstructor.prototype.takeBinaryData = function(binData) {
-  this.buffers.push(binData);
-  if (this.buffers.length == this.reconPack.attachments) { // done with buffer list
-    var packet = binary.reconstructPacket(this.reconPack, this.buffers);
-    this.finishedReconstruction();
-    return packet;
-  }
-  return null;
-};
-
-/**
- * Cleans up binary packet reconstruction variables.
- *
- * @api private
- */
-
-BinaryReconstructor.prototype.finishedReconstruction = function() {
-  this.reconPack = null;
-  this.buffers = [];
-};
-
-function error(data){
-  return {
-    type: exports.ERROR,
-    data: 'parser error'
-  };
-}
-
-},{"./binary":27,"./is-buffer":26,"component-emitter":30,"debug":15,"isarray":29,"json3":28}],28:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var global=self;/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 ;(function () {
   // Detect the `define` function exposed by asynchronous module loaders. The
@@ -13903,16 +13516,413 @@ var global=self;/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 20
   }
 }).call(this);
 
-},{}],20:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
+
+/**
+ * Module dependencies.
+ */
+
+var debug = require('debug')('socket.io-parser');
+var json = require('json3');
+var isArray = require('isarray');
+var Emitter = require('component-emitter');
+var binary = require('./binary');
+var isBuf = require('./is-buffer');
+
+/**
+ * Protocol version.
+ *
+ * @api public
+ */
+
+exports.protocol = 4;
+
+/**
+ * Packet types.
+ *
+ * @api public
+ */
+
+exports.types = [
+  'CONNECT',
+  'DISCONNECT',
+  'EVENT',
+  'ACK',
+  'ERROR',
+  'BINARY_EVENT',
+  'BINARY_ACK'
+];
+
+/**
+ * Packet type `connect`.
+ *
+ * @api public
+ */
+
+exports.CONNECT = 0;
+
+/**
+ * Packet type `disconnect`.
+ *
+ * @api public
+ */
+
+exports.DISCONNECT = 1;
+
+/**
+ * Packet type `event`.
+ *
+ * @api public
+ */
+
+exports.EVENT = 2;
+
+/**
+ * Packet type `ack`.
+ *
+ * @api public
+ */
+
+exports.ACK = 3;
+
+/**
+ * Packet type `error`.
+ *
+ * @api public
+ */
+
+exports.ERROR = 4;
+
+/**
+ * Packet type 'binary event'
+ *
+ * @api public
+ */
+
+exports.BINARY_EVENT = 5;
+
+/**
+ * Packet type `binary ack`. For acks with binary arguments.
+ *
+ * @api public
+ */
+
+exports.BINARY_ACK = 6;
+
+/**
+ * Encoder constructor.
+ *
+ * @api public
+ */
+
+exports.Encoder = Encoder;
+
+/**
+ * Decoder constructor.
+ *
+ * @api public
+ */
+
+exports.Decoder = Decoder;
+
+/**
+ * A socket.io Encoder instance
+ *
+ * @api public
+ */
+
+function Encoder() {}
+
+/**
+ * Encode a packet as a single string if non-binary, or as a
+ * buffer sequence, depending on packet type.
+ *
+ * @param {Object} obj - packet object
+ * @param {Function} callback - function to handle encodings (likely engine.write)
+ * @return Calls callback with Array of encodings
+ * @api public
+ */
+
+Encoder.prototype.encode = function(obj, callback){
+  debug('encoding packet %j', obj);
+
+  if (exports.BINARY_EVENT == obj.type || exports.BINARY_ACK == obj.type) {
+    encodeAsBinary(obj, callback);
+  }
+  else {
+    var encoding = encodeAsString(obj);
+    callback([encoding]);
+  }
+};
+
+/**
+ * Encode packet as string.
+ *
+ * @param {Object} packet
+ * @return {String} encoded
+ * @api private
+ */
+
+function encodeAsString(obj) {
+  var str = '';
+  var nsp = false;
+
+  // first is type
+  str += obj.type;
+
+  // attachments if we have them
+  if (exports.BINARY_EVENT == obj.type || exports.BINARY_ACK == obj.type) {
+    str += obj.attachments;
+    str += '-';
+  }
+
+  // if we have a namespace other than `/`
+  // we append it followed by a comma `,`
+  if (obj.nsp && '/' != obj.nsp) {
+    nsp = true;
+    str += obj.nsp;
+  }
+
+  // immediately followed by the id
+  if (null != obj.id) {
+    if (nsp) {
+      str += ',';
+      nsp = false;
+    }
+    str += obj.id;
+  }
+
+  // json data
+  if (null != obj.data) {
+    if (nsp) str += ',';
+    str += json.stringify(obj.data);
+  }
+
+  debug('encoded %j as %s', obj, str);
+  return str;
+}
+
+/**
+ * Encode packet as 'buffer sequence' by removing blobs, and
+ * deconstructing packet into object with placeholders and
+ * a list of buffers.
+ *
+ * @param {Object} packet
+ * @return {Buffer} encoded
+ * @api private
+ */
+
+function encodeAsBinary(obj, callback) {
+
+  function writeEncoding(bloblessData) {
+    var deconstruction = binary.deconstructPacket(bloblessData);
+    var pack = encodeAsString(deconstruction.packet);
+    var buffers = deconstruction.buffers;
+
+    buffers.unshift(pack); // add packet info to beginning of data list
+    callback(buffers); // write all the buffers
+  }
+
+  binary.removeBlobs(obj, writeEncoding);
+}
+
+/**
+ * A socket.io Decoder instance
+ *
+ * @return {Object} decoder
+ * @api public
+ */
+
+function Decoder() {
+  this.reconstructor = null;
+}
+
+/**
+ * Mix in `Emitter` with Decoder.
+ */
+
+Emitter(Decoder.prototype);
+
+/**
+ * Decodes an ecoded packet string into packet JSON.
+ *
+ * @param {String} obj - encoded packet
+ * @return {Object} packet
+ * @api public
+ */
+
+Decoder.prototype.add = function(obj) {
+  var packet;
+  if ('string' == typeof obj) {
+    packet = decodeString(obj);
+    if (exports.BINARY_EVENT == packet.type || exports.BINARY_ACK == packet.type) { // binary packet's json
+      this.reconstructor = new BinaryReconstructor(packet);
+
+      // no attachments, labeled binary but no binary data to follow
+      if (this.reconstructor.reconPack.attachments === 0) {
+        this.emit('decoded', packet);
+      }
+    } else { // non-binary full packet
+      this.emit('decoded', packet);
+    }
+  }
+  else if (isBuf(obj) || obj.base64) { // raw binary data
+    if (!this.reconstructor) {
+      throw new Error('got binary data when not reconstructing a packet');
+    } else {
+      packet = this.reconstructor.takeBinaryData(obj);
+      if (packet) { // received final buffer
+        this.reconstructor = null;
+        this.emit('decoded', packet);
+      }
+    }
+  }
+  else {
+    throw new Error('Unknown type: ' + obj);
+  }
+};
+
+/**
+ * Decode a packet String (JSON data)
+ *
+ * @param {String} str
+ * @return {Object} packet
+ * @api private
+ */
+
+function decodeString(str) {
+  var p = {};
+  var i = 0;
+
+  // look up type
+  p.type = Number(str.charAt(0));
+  if (null == exports.types[p.type]) return error();
+
+  // look up attachments if type binary
+  if (exports.BINARY_EVENT == p.type || exports.BINARY_ACK == p.type) {
+    var buf = '';
+    while (str.charAt(++i) != '-') {
+      buf += str.charAt(i);
+      if (i == str.length) break;
+    }
+    if (buf != Number(buf) || str.charAt(i) != '-') {
+      throw new Error('Illegal attachments');
+    }
+    p.attachments = Number(buf);
+  }
+
+  // look up namespace (if any)
+  if ('/' == str.charAt(i + 1)) {
+    p.nsp = '';
+    while (++i) {
+      var c = str.charAt(i);
+      if (',' == c) break;
+      p.nsp += c;
+      if (i == str.length) break;
+    }
+  } else {
+    p.nsp = '/';
+  }
+
+  // look up id
+  var next = str.charAt(i + 1);
+  if ('' !== next && Number(next) == next) {
+    p.id = '';
+    while (++i) {
+      var c = str.charAt(i);
+      if (null == c || Number(c) != c) {
+        --i;
+        break;
+      }
+      p.id += str.charAt(i);
+      if (i == str.length) break;
+    }
+    p.id = Number(p.id);
+  }
+
+  // look up json data
+  if (str.charAt(++i)) {
+    try {
+      p.data = json.parse(str.substr(i));
+    } catch(e){
+      return error();
+    }
+  }
+
+  debug('decoded %s as %j', str, p);
+  return p;
+}
+
+/**
+ * Deallocates a parser's resources
+ *
+ * @api public
+ */
+
+Decoder.prototype.destroy = function() {
+  if (this.reconstructor) {
+    this.reconstructor.finishedReconstruction();
+  }
+};
+
+/**
+ * A manager of a binary event's 'buffer sequence'. Should
+ * be constructed whenever a packet of type BINARY_EVENT is
+ * decoded.
+ *
+ * @param {Object} packet
+ * @return {BinaryReconstructor} initialized reconstructor
+ * @api private
+ */
+
+function BinaryReconstructor(packet) {
+  this.reconPack = packet;
+  this.buffers = [];
+}
+
+/**
+ * Method to be called when binary data received from connection
+ * after a BINARY_EVENT packet.
+ *
+ * @param {Buffer | ArrayBuffer} binData - the raw binary data received
+ * @return {null | Object} returns null if more binary data is expected or
+ *   a reconstructed packet object if all buffers have been received.
+ * @api private
+ */
+
+BinaryReconstructor.prototype.takeBinaryData = function(binData) {
+  this.buffers.push(binData);
+  if (this.buffers.length == this.reconPack.attachments) { // done with buffer list
+    var packet = binary.reconstructPacket(this.reconPack, this.buffers);
+    this.finishedReconstruction();
+    return packet;
+  }
+  return null;
+};
+
+/**
+ * Cleans up binary packet reconstruction variables.
+ *
+ * @api private
+ */
+
+BinaryReconstructor.prototype.finishedReconstruction = function() {
+  this.reconPack = null;
+  this.buffers = [];
+};
+
+function error(data){
+  return {
+    type: exports.ERROR,
+    data: 'parser error'
+  };
+}
+
+},{"./binary":28,"./is-buffer":26,"component-emitter":29,"debug":14,"isarray":30,"json3":27}],20:[function(require,module,exports){
 
 module.exports =  require('./lib/');
 
 },{"./lib/":31}],29:[function(require,module,exports){
-module.exports = Array.isArray || function (arr) {
-  return Object.prototype.toString.call(arr) == '[object Array]';
-};
-
-},{}],30:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -14078,7 +14088,12 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],27:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
+module.exports = Array.isArray || function (arr) {
+  return Object.prototype.toString.call(arr) == '[object Array]';
+};
+
+},{}],28:[function(require,module,exports){
 var global=self;/*global Blob,File*/
 
 /**
@@ -14221,7 +14236,7 @@ exports.removeBlobs = function(data, callback) {
   }
 };
 
-},{"./is-buffer":26,"isarray":29}],18:[function(require,module,exports){
+},{"./is-buffer":26,"isarray":30}],18:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -14481,7 +14496,7 @@ function hasBinary(data) {
   return _hasBinary(data);
 }
 
-},{"isarray":29}],32:[function(require,module,exports){
+},{"isarray":30}],32:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -15405,7 +15420,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
   return filteredUpgrades;
 };
 
-},{"./transport":40,"./transports":35,"component-emitter":30,"debug":15,"engine.io-parser":34,"indexof":21,"parsejson":41,"parseqs":42,"parseuri":19}],43:[function(require,module,exports){
+},{"./transport":40,"./transports":35,"component-emitter":29,"debug":14,"engine.io-parser":34,"indexof":22,"parsejson":42,"parseqs":41,"parseuri":19}],43:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -15427,39 +15442,6 @@ module.exports = Object.keys || function keys (obj){
 };
 
 },{}],41:[function(require,module,exports){
-var global=self;/**
- * JSON parse.
- *
- * @see Based on jQuery#parseJSON (MIT) and JSON2
- * @api private
- */
-
-var rvalidchars = /^[\],:{}\s]*$/;
-var rvalidescape = /\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g;
-var rvalidtokens = /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g;
-var rvalidbraces = /(?:^|:|,)(?:\s*\[)+/g;
-var rtrimLeft = /^\s+/;
-var rtrimRight = /\s+$/;
-
-module.exports = function parsejson(data) {
-  if ('string' != typeof data || !data) {
-    return null;
-  }
-
-  data = data.replace(rtrimLeft, '').replace(rtrimRight, '');
-
-  // Attempt to parse using the native JSON parser first
-  if (global.JSON && JSON.parse) {
-    return JSON.parse(data);
-  }
-
-  if (rvalidchars.test(data.replace(rvalidescape, '@')
-      .replace(rvalidtokens, ']')
-      .replace(rvalidbraces, ''))) {
-    return (new Function('return ' + data))();
-  }
-};
-},{}],42:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -15498,6 +15480,39 @@ exports.decode = function(qs){
   return qry;
 };
 
+},{}],42:[function(require,module,exports){
+var global=self;/**
+ * JSON parse.
+ *
+ * @see Based on jQuery#parseJSON (MIT) and JSON2
+ * @api private
+ */
+
+var rvalidchars = /^[\],:{}\s]*$/;
+var rvalidescape = /\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g;
+var rvalidtokens = /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g;
+var rvalidbraces = /(?:^|:|,)(?:\s*\[)+/g;
+var rtrimLeft = /^\s+/;
+var rtrimRight = /\s+$/;
+
+module.exports = function parsejson(data) {
+  if ('string' != typeof data || !data) {
+    return null;
+  }
+
+  data = data.replace(rtrimLeft, '').replace(rtrimRight, '');
+
+  // Attempt to parse using the native JSON parser first
+  if (global.JSON && JSON.parse) {
+    return JSON.parse(data);
+  }
+
+  if (rvalidchars.test(data.replace(rvalidescape, '@')
+      .replace(rvalidtokens, ']')
+      .replace(rvalidbraces, ''))) {
+    return (new Function('return ' + data))();
+  }
+};
 },{}],40:[function(require,module,exports){
 /**
  * Module dependencies.
@@ -15655,7 +15670,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":30,"engine.io-parser":34}],44:[function(require,module,exports){
+},{"component-emitter":29,"engine.io-parser":34}],44:[function(require,module,exports){
 
 },{}],34:[function(require,module,exports){
 var global=self;/**
@@ -16253,7 +16268,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
   });
 };
 
-},{"./keys":43,"after":48,"arraybuffer.slice":50,"base64-arraybuffer":47,"blob":49,"has-binary":45,"utf8":46}],46:[function(require,module,exports){
+},{"./keys":43,"after":48,"arraybuffer.slice":47,"base64-arraybuffer":49,"blob":50,"has-binary":45,"utf8":46}],46:[function(require,module,exports){
 var global=self;/*! https://mths.be/utf8js v2.0.0 by @mathias */
 ;(function(root) {
 
@@ -16500,6 +16515,67 @@ var global=self;/*! https://mths.be/utf8js v2.0.0 by @mathias */
 }(this));
 
 },{}],47:[function(require,module,exports){
+/**
+ * An abstraction for slicing an arraybuffer even when
+ * ArrayBuffer.prototype.slice is not supported
+ *
+ * @api public
+ */
+
+module.exports = function(arraybuffer, start, end) {
+  var bytes = arraybuffer.byteLength;
+  start = start || 0;
+  end = end || bytes;
+
+  if (arraybuffer.slice) { return arraybuffer.slice(start, end); }
+
+  if (start < 0) { start += bytes; }
+  if (end < 0) { end += bytes; }
+  if (end > bytes) { end = bytes; }
+
+  if (start >= bytes || start >= end || bytes === 0) {
+    return new ArrayBuffer(0);
+  }
+
+  var abv = new Uint8Array(arraybuffer);
+  var result = new Uint8Array(end - start);
+  for (var i = start, ii = 0; i < end; i++, ii++) {
+    result[ii] = abv[i];
+  }
+  return result.buffer;
+};
+
+},{}],48:[function(require,module,exports){
+module.exports = after
+
+function after(count, callback, err_cb) {
+    var bail = false
+    err_cb = err_cb || noop
+    proxy.count = count
+
+    return (count === 0) ? callback() : proxy
+
+    function proxy(err, result) {
+        if (proxy.count <= 0) {
+            throw new Error('after called too many times')
+        }
+        --proxy.count
+
+        // after first error, rest are passed to err_cb
+        if (err) {
+            bail = true
+            callback(err)
+            // future error callbacks will go to error handler
+            callback = err_cb
+        } else if (proxy.count === 0 && !bail) {
+            callback(null, result)
+        }
+    }
+}
+
+function noop() {}
+
+},{}],49:[function(require,module,exports){
 /*
  * base64-arraybuffer
  * https://github.com/niklasvh/base64-arraybuffer
@@ -16560,37 +16636,7 @@ var global=self;/*! https://mths.be/utf8js v2.0.0 by @mathias */
   };
 })("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 
-},{}],48:[function(require,module,exports){
-module.exports = after
-
-function after(count, callback, err_cb) {
-    var bail = false
-    err_cb = err_cb || noop
-    proxy.count = count
-
-    return (count === 0) ? callback() : proxy
-
-    function proxy(err, result) {
-        if (proxy.count <= 0) {
-            throw new Error('after called too many times')
-        }
-        --proxy.count
-
-        // after first error, rest are passed to err_cb
-        if (err) {
-            bail = true
-            callback(err)
-            // future error callbacks will go to error handler
-            callback = err_cb
-        } else if (proxy.count === 0 && !bail) {
-            callback(null, result)
-        }
-    }
-}
-
-function noop() {}
-
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 var global=self;/**
  * Create a blob builder even when vendor prefixes exist
  */
@@ -16687,37 +16733,6 @@ module.exports = (function() {
     return undefined;
   }
 })();
-
-},{}],50:[function(require,module,exports){
-/**
- * An abstraction for slicing an arraybuffer even when
- * ArrayBuffer.prototype.slice is not supported
- *
- * @api public
- */
-
-module.exports = function(arraybuffer, start, end) {
-  var bytes = arraybuffer.byteLength;
-  start = start || 0;
-  end = end || bytes;
-
-  if (arraybuffer.slice) { return arraybuffer.slice(start, end); }
-
-  if (start < 0) { start += bytes; }
-  if (end < 0) { end += bytes; }
-  if (end > bytes) { end = bytes; }
-
-  if (start >= bytes || start >= end || bytes === 0) {
-    return new ArrayBuffer(0);
-  }
-
-  var abv = new Uint8Array(arraybuffer);
-  var result = new Uint8Array(end - start);
-  for (var i = start, ii = 0; i < end; i++, ii++) {
-    result[ii] = abv[i];
-  }
-  return result.buffer;
-};
 
 },{}],36:[function(require,module,exports){
 // browser shim for xmlhttprequest module
@@ -17190,7 +17205,7 @@ function unloadHandler() {
   }
 }
 
-},{"./polling":52,"component-emitter":30,"component-inherit":53,"debug":15,"xmlhttprequest-ssl":36}],38:[function(require,module,exports){
+},{"./polling":52,"component-emitter":29,"component-inherit":53,"debug":14,"xmlhttprequest-ssl":36}],38:[function(require,module,exports){
 var global=self;
 /**
  * Module requirements.
@@ -17720,7 +17735,7 @@ WS.prototype.check = function(){
   return !!WebSocket && !('__initialize' in WebSocket && this.name === WS.prototype.name);
 };
 
-},{"../transport":40,"component-inherit":53,"debug":15,"engine.io-parser":34,"parseqs":42,"ws":44,"yeast":54}],54:[function(require,module,exports){
+},{"../transport":40,"component-inherit":53,"debug":14,"engine.io-parser":34,"parseqs":41,"ws":44,"yeast":54}],54:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
@@ -17858,7 +17873,7 @@ function hasBinary(data) {
   return _hasBinary(data);
 }
 
-},{"isarray":29}],52:[function(require,module,exports){
+},{"isarray":30}],52:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -18107,5 +18122,5 @@ Polling.prototype.uri = function(){
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":40,"component-inherit":53,"debug":15,"engine.io-parser":34,"parseqs":42,"xmlhttprequest-ssl":36,"yeast":54}]},{},[1])
+},{"../transport":40,"component-inherit":53,"debug":14,"engine.io-parser":34,"parseqs":41,"xmlhttprequest-ssl":36,"yeast":54}]},{},[1])
 ;
