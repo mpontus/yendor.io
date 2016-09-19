@@ -17,8 +17,8 @@ io.sockets.on('connection', function(socket) {
 
   // TTY dimensions
   var size = {
-    w: 100,
-    h: 34,
+    w: 80,
+    h: 24,
   };
 
   // Buffer client's terminal size while creating the container
@@ -37,11 +37,13 @@ io.sockets.on('connection', function(socket) {
 
     // Remove the container if client disconnected during creation
     if (!socket.connected) {
+      console.log('removed');
       return container.remove();
     }
 
     // Remove the container as soon as client disconnects
     socket.on('disconnect', function() {
+      console.log('removed');
       container.remove({
         force: true,
       });
@@ -49,35 +51,33 @@ io.sockets.on('connection', function(socket) {
 
     // Launch the container
     container.start().then(function () {
+      console.log("started");
 
-      // Resize container tty to the dimensions of client terminal
-      container.resize(size).then(function() {
+      // Attach socket.io stream to container TTY
+      container.attach({
+        stream: true,
+        stdin: true,
+        stdout: true
+      }).then(function(stream) {
+        console.log("attached");
 
-        // Attach socket.io stream to container TTY
-        container.attach({
-          stream: true,
-          stdin: true,
-          stdout: true
-        }).then(function(stream) {
+        // Synchronize client's terminal size with container TTY
+        container.resize(size);
+        socket.on('resize', function(size) {
+          container.resize(size);
+        });
 
-          // Synchronize client's terminal size with container TTY
-          // container.resize(size);
-          // socket.on('resize', function(size) {
-          //   container.resize(size);
-          // });
+        // Handle IO
+        socket.on('data', function(data) {
+          stream.write(data);
+        });
+        stream.on('data', function(data) {
+          socket.emit('data', data.toString());
+        });
 
-          // Handle IO
-          socket.on('data', function(data) {
-            stream.write(data);
-          });
-          stream.on('data', function(data) {
-            socket.emit('data', data.toString());
-          });
-
-          // Disconnect the client as soon as container exits
-          stream.on('end', function() {
-            socket.disconnect();
-          });
+        // Disconnect the client as soon as container exits
+        stream.on('end', function() {
+          socket.disconnect();
         });
       });
     });

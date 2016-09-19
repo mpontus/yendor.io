@@ -2,19 +2,29 @@ body {
     margin-top: 30px;
 }
 
- .terminal {
-     float: left;
-     border: #000 solid 5px;
-     font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-     font-size: 14px;
-     color: #f0f0f0;
-     background: #000;
- }
+#terminal {
+    margin: 0 auto;
+    border: 5px solid red;
+    font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1em;
+}
 
- .terminal-cursor {
-     color: #000;
-     background: #f0f0f0;
- }
+.terminal {
+    float: left;
+    margin: 0 auto;
+    line-height: 1em;
+    border: #000 solid 5px;
+    font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+    font-size: 14px;
+    color: #f0f0f0;
+    background: #000;
+}
+
+/* .terminal-cursor { */
+/*     color: #000; */
+/*     background: #f0f0f0; */
+/* } */
 
 
 /* #terminal { */
