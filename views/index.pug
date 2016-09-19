@@ -1,0 +1,29 @@
+extends layout
+
+block content
+  .jumbotron
+    h1 Welcome to Yendor.IO
+    h2 Online playground for classical roguelikes.
+
+  .row
+    .col-md-10.col-md-offset-1.col-xs-12
+      .row
+        .col-md-4
+          .thumbnail
+            a(href="/play/rogue")
+              img.img-responsive(src="/img/games/rogue.png")
+              .caption.text-center
+                h3 Rogue <small>1980-2007</small>
+        .col-md-4
+          .thumbnail
+            a(href="/play/nethack")
+              img.img-responsive(src="/img/games/nethack.png")
+              .caption.text-center
+                h3 Nethack <small>1987-2016</small>
+    
+        .col-md-4
+          .thumbnail
+            a(href="/play/brogue")
+              img.img-responsive(src="/img/games/brogue.png")
+              .caption.text-center
+                h3 Brogue <small>2009-2014</small>

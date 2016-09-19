@@ -1,8 +1,21 @@
 body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+    margin-top: 30px;
 }
 
-a {
-  color: #00B7FF;
+#terminal {
+    margin: 0 auto;a
+}
+
+.terminal {
+    line-height: 1em;
+    color: #fff;
+    background: #000;
+    font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+    border: 5px solid #000;
+    box-sizing: content-box;
+}
+
+.terminal-cursor {
+    color: #000;
+    background: #f0f0f0;
 }

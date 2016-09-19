@@ -1,0 +1,11 @@
+extends ../layout
+
+block content
+  h1= title
+  div#terminal
+  script.
+    Yendor.play(document.getElementById('terminal'), {
+      game: 'brogue',
+      cols: 80,
+      rows: 24,
+    });
