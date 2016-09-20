@@ -38,7 +38,6 @@ function BaseDockerStrategy (options) {
     }).catch(function(err) {
       console.warn("Error while initializing the container: " + err);
     });
-  
 };
 
 util.inherits(BaseDockerStrategy, EventEmitter);
