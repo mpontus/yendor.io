@@ -1,15 +1,15 @@
 module.exports = {
   'rogue': {
     'dockerImage': 'yendor/rogue',
-    'savesPath': '/root',
+    'gameDataDir': '/root',
   },
   'nethack': {
     'dockerImage': 'yendor/nethack',
-    'savesPath': '/root/nh/install/games/lib/nethackdir/save/',
+    'gameDataDir': '/root/nh/install/games/lib/nethackdir/save/',
   },
   'brogue': {
     'dockerImage': 'yendor/brogue',
-    'savesPath': '/root',
+    'gameDataDir': '/root',
     'dockerStrategy': 'StartFirst',
   },
 };
