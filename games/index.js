@@ -10,5 +10,6 @@ module.exports = {
   'brogue': {
     'dockerImage': 'yendor/brogue',
     'savesPath': '/root',
+    'dockerStrategy': 'StartFirst',
   },
 };
