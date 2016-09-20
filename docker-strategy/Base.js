@@ -1,5 +1,6 @@
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
+var mkdirp = require('mkdirp');
 var Docker = require('dockerode-promise');
 
 function BaseDockerStrategy (options) {
@@ -10,27 +11,48 @@ function BaseDockerStrategy (options) {
   this._stopped = false;
   this._docker = new Docker();
 
-  this._docker.createContainer({
-    Image: this._options.dockerImage,
-    AttachStdin: true,
-    AttachStdout: true,
-    Tty: true,
-    OpenStdin: true,
-  }).then(function(container) {
-    if (self._stopped) {
-      return container.remove();
-    }
-    self.on('stop', function () {
-      container.remove({
-        force: true,
+  this.ensureDirExists(options.gameDataDir.from)
+    .then(function() {
+      var bind = options.gameDataDir.from + ':' + options.gameDataDir.to;
+      return self._docker.createContainer({
+        Image: self._options.dockerImage,
+        AttachStdin: true,
+        AttachStdout: true,
+        Tty: true,
+        OpenStdin: true,
+        HostConfig: {
+          Binds: [bind],
+        },
+      })
+    }).then(function(container) {
+      if (self._stopped) {
+        return container.remove();
+      }
+      self.on('stop', function () {
+        container.remove({
+          force: true,
+        });
       });
+      self._container = container;
+      self.emit('containerObtained', container);
+    }).catch(function(err) {
+      console.warn("Error while initializing the container: " + err);
     });
-    self._container = container;
-    self.emit('containerObtained', container);
-  });
+  
 };
 
 util.inherits(BaseDockerStrategy, EventEmitter);
+
+BaseDockerStrategy.prototype.ensureDirExists = function(directoryPath) {
+  return new Promise(function(resolve, reject) {
+    mkdirp(directoryPath, function (err) {
+      if (err) {
+        return reject(err);
+      }
+      resolve();
+    });
+  });
+}
 
 BaseDockerStrategy.prototype.getStream = function () {
   var self = this;
