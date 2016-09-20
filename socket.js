@@ -1,36 +1,46 @@
 var Docker = require('dockerode-promise');
 var Server = require('socket.io');
+var sharedSession = require('express-socket.io-session');
+var path = require('path');
+var session = require('./session');
 var games = require('./games');
 var strategies = require('./docker-strategy');
 
 var io = new Server;
-var docker = new Docker();
+
+io.use(sharedSession(session));
 
 io.sockets.on('connection', function(socket) {
   var game, options, strategyName, strategyClass, strategy;
 
   try {
     // Try and retrieve game options from a list of known games
-    game = socket.handshake.query.game;
+    var game = socket.handshake.query.game;
     if (!game || !games[game]) {
       // Disconnect if game queried by client is not known
       throw new Error("Unknown game identifier: " + game);
     }
-    options = games[game];
+    var options = games[game];
 
     // Find the strategy for initializing docker container
-    strategyName = options.dockerStrategy
+    var strategyName = options.dockerStrategy
       ? options.dockerStrategy
       : 'AttachFirst';
 
-    strategyClass = strategies[strategyName];
+    var strategyClass = strategies[strategyName];
 
     if (!strategyClass) {
       throw new Error("Unknown docker strategy: " + strategyName);
     }
 
-    strategy = new strategyClass({
+    var playerid = socket.handshake.session.playerid;
+
+    var strategy = new strategyClass({
       dockerImage: options.dockerImage,
+      gameDataDir: {
+        from: path.join(__dirname, 'gamedata', game, playerid),
+        to: options.gameDataDir,
+      }
     });
 
     // Attach IO
