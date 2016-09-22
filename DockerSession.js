@@ -3,7 +3,19 @@ var async = require('async');
 var mkdirp = require('mkdirp');
 
 /**
+ * DockerSession constructor
+ *
+ * Valid options:
+ *
+ *     dockerImage      - Image name for the container (required)
+ *     attachAfterStart - If true stream will only be attached to container's tty after startup
+ *     bindings         - List of docker volume bindings in form {from: <host path>, to: <container path>}
+ *
  * @inherits NodeJS EventEmitter
+ * @param {Object} docker Instance of Dockerode's Docker
+ * @param {Object} options Options for docker session
+ * @event `status`      [creating|starting|attaching|resizing|resized|removing|removed]
+ * @event `initialized` Container finished initializing, stream is available.
  */
 var DockerSession = function(docker, options) {
   this.docker = docker;
@@ -89,6 +101,8 @@ DockerSession.prototype.start = function() {
 
 /**
  * Change the required dimensions of docker container's tty
+ *
+ * @param {Object} size Required dimensions in form {w: <int>, h: <int>}
  */
 DockerSession.prototype.resize = function(size) {
   this.size = size;
@@ -113,7 +127,6 @@ DockerSession.prototype._resize = function() {
   this.emit('status', 'resizing');
   var _this = this;
   this.container.resize(this.size, function() {
-    _this.emit('resized');
     _this.emit('status', 'resized');
   });
 };
@@ -137,7 +150,6 @@ DockerSession.prototype._remove = function() {
   this.container.remove({
     force: true,
   }, function() {
-    _this.emit('removed');
     _this.emit('status', 'removed');
   });
 };
@@ -147,7 +159,6 @@ DockerSession.prototype._remove = function() {
  */
 DockerSession.prototype.handleCreated = function(err, container) {
   this.container = container;
-  this.emit('created');
   if (this.aborted) {
     return this._remove();
   }
@@ -168,34 +179,33 @@ DockerSession.prototype.handleAttached = function(err, stream) {
     return this._remove();
   }
   if (this.options.attachAfterStart) {
-    this.handleInitialized();
+    this.handleInitialized(null);
   } else {
     this.start();
   }
-}
+};
 
 /**
  * Perform actions after container startup
  */
 DockerSession.prototype.handleStarted = function(err) {
   if (err) throw err;
-  this.emit('started');
   if (this.aborted) {
     return this._remove();
   }
   if (this.options.attachAfterStart) {
     this.attach();
   } else {
-    this.handleInitialized();
+    this.handleInitialized(null);
   }
 };
 
 /**
  * Perform actions following full container initiialization
  */
-DockerSession.prototype.handleInitialized = function() {
+DockerSession.prototype.handleInitialized = function(err) {
+  if (err) throw err;
   this.initialized = true;
-  this.emit('status', 'ready');
   this.emit('initialized');
   if (this.aborted) {
     return this._remove();
