@@ -1,18 +1,17 @@
-var Docker = require('dockerode-promise');
+var Docker = require('dockerode');
 var Server = require('socket.io');
 var sharedSession = require('express-socket.io-session');
 var path = require('path');
 var session = require('./session');
 var games = require('./games');
-var strategies = require('./docker-strategy');
+var DockerSession = require('./DockerSession');
 
-var io = new Server;
+var io = new Server();
+var docker = new Docker();
 
 io.use(sharedSession(session));
 
 io.sockets.on('connection', function(socket) {
-  var game, options, strategyName, strategyClass, strategy;
-
   try {
     // Try and retrieve game options from a list of known games
     var game = socket.handshake.query.game;
@@ -22,43 +21,47 @@ io.sockets.on('connection', function(socket) {
     }
     var options = games[game];
 
-    // Find the strategy for initializing docker container
-    var strategyName = options.dockerStrategy
-      ? options.dockerStrategy
-      : 'AttachFirst';
-
-    var strategyClass = strategies[strategyName];
-
-    if (!strategyClass) {
-      throw new Error("Unknown docker strategy: " + strategyName);
-    }
-
     var playerid = socket.handshake.session.playerid;
 
-    var strategy = new strategyClass({
+    var dockerSession = new DockerSession(docker, {
       dockerImage: options.dockerImage,
-      gameDataDir: {
-        from: path.join(__dirname, 'gamedata', game, playerid),
+      attachAfterStart: options.attachAfterStart,
+      bindings: [{
+        from: path.join(__dirname, 'data', 'games', game, playerid),
         to: options.gameDataDir,
-      }
+      }],
     });
 
-    // Attach IO
-    strategy.getStream().then(function(stream) {
+    dockerSession.initialize();
+
+    dockerSession.on('status', function(status) {
+      console.log(status);
+    });
+
+    dockerSession.on('initialized', function() {
+      var stream = dockerSession.stream;
       socket.on('data', function(data) {
         stream.write(data);
       });
       stream.on('data', function(data) {
         socket.emit('data', data.toString());
       });
-      stream.on('end', function () {
+      stream.on('end', function() {
         socket.disconnect();
       });
     });
 
+    // Resize container's tty
+    socket.on('resize', function(size) {
+      dockerSession.resize({
+        w: parseInt(size.w),
+        h: parseInt(size.h)
+      });
+    });
+
     // Shut down docker container when client disconnects
-    socket.on('disconnect', function () {
-      strategy.stop();
+    socket.on('disconnect', function() {
+      dockerSession.abort();
     });
 
   } catch (err) {
