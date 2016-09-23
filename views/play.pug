@@ -1,12 +1,12 @@
-extends ../layout
+extends layout
 
 block content
-  h1 Nethack 3.6.0 (2016)
+  h1= title
   .game-container
   script.
     Yendor.play(document.querySelector('.game-container'), {
-      game: 'nethack',
-      cols: 80,
-      rows: 24,
+      game: "#{game}",
+      cols: #{term.cols},
+      rows: #{term.rows},
     });
   
