@@ -1,8 +1,10 @@
 var session = require('express-session');
 var uuid = require('node-uuid');
 
+require('dotenv').config();
+
 var sessionInstance = session({
-  secret: '0b037d7773cead92485e114839b3bd27b5ddcec7',
+  secret: process.env.SESSION_SECRET,
   resave: true,
   saveUninitialized: true,
 })
