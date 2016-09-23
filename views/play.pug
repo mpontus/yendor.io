@@ -1,7 +1,9 @@
 extends layout
 
 block content
-  h1= title
+  .row
+    .col-md-6.col-md-offset-3
+      h1= title
   .game-container
   script.
     Yendor.play(document.querySelector('.game-container'), {
@@ -10,6 +12,5 @@ block content
       rows: #{term.rows},
     });
   .row
-    .col-md-8
-      h2 Controls
+    .col-md-6.col-md-offset-3
       pre #{readme}

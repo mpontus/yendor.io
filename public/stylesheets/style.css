@@ -1,17 +1,15 @@
-body {
-    margin-top: 30px;
-}
-
 .game-page {
     float: left;
 }
 
 .game-container {
-    float: left;
+    margin-bottom: 20px;
+}
+
+.game {
     position: relative;
-    margin: 10px 0;
-    padding: 10px;
-    background: #030303;
+    margin: 0 auto;
+    border: 5px solid #000;
 }
 
 .status-screen, .end-game-screen {
