@@ -35,7 +35,7 @@ io.sockets.on('connection', function(socket) {
     dockerSession.initialize();
 
     dockerSession.on('status', function(status) {
-      console.log(status);
+      socket.emit('status', status);
     });
 
     dockerSession.on('initialized', function() {

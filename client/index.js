@@ -1,4 +1,4 @@
-import play from './play';
+var play = require('./play');
 
 (function () {
   this.Yendor || (this.Yendor = {});

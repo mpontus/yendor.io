@@ -2,21 +2,41 @@ body {
     margin-top: 30px;
 }
 
-#terminal {
-    margin: 0 auto;
-    border: 5px solid red;
-    font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-    font-size: 14px;
-    line-height: 1em;
+.game-page {
+    float: left;
+}
+
+.game-container {
+    float: left;
+    position: relative;
+    margin: 10px 0;
+    padding: 10px;
+    background: #030303;
+}
+
+.status-screen, .end-game-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* background: #eaf2ff; */
+    background: #000;
+    color: white;
+    text-align: center;
+    padding-top: 8.5em;
+}
+
+.end-game-screen {
 }
 
 .terminal {
     float: left;
     margin: 0 auto;
-    line-height: 1em;
-    border: #000 solid 5px;
     font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
     font-size: 14px;
+    line-height: 14px;
+    /* border: #000 solid 5px; */
     color: #f0f0f0;
     background: #000;
 }

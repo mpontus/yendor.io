@@ -1,11 +1,12 @@
 extends ../layout
 
 block content
-  h1= title
-  div#terminal
+  h1 Nethack 3.6.0 (2016)
+  .game-container
   script.
-    Yendor.play(document.getElementById('terminal'), {
+    Yendor.play(document.querySelector('.game-container'), {
       game: 'nethack',
       cols: 80,
       rows: 24,
     });
+  
