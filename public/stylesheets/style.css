@@ -9,7 +9,6 @@
 .game {
     position: relative;
     margin: 0 auto;
-    border: 5px solid #000;
 }
 
 .status-screen, .end-game-screen {
@@ -18,11 +17,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    /* background: #eaf2ff; */
     background: #000;
     color: white;
     text-align: center;
-    padding-top: 8.5em;
 }
 
 .end-game-screen {
@@ -34,31 +31,12 @@
     font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
     font-size: 14px;
     line-height: 14px;
-    /* border: #000 solid 5px; */
+    border: #000 solid 5px;
     color: #f0f0f0;
     background: #000;
 }
 
-/* .terminal-cursor { */
-/*     color: #000; */
-/*     background: #f0f0f0; */
-/* } */
-
-
-/* #terminal { */
-/*     margin: 0 auto;a */
-/* } */
-
-/* .terminal { */
-/*     line-height: 1em; */
-/*     color: #fff; */
-/*     background: #000; */
-/*     font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; */
-/*     border: 5px solid #000; */
-/*     box-sizing: content-box; */
-/* } */
-
-/* .terminal-cursor { */
-/*     color: #000; */
-/*     background: #f0f0f0; */
-/* } */
+.terminal-cursor {
+    color: #000;
+    background: #f0f0f0;
+}
