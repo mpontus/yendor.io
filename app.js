@@ -27,14 +27,10 @@ app.get('/play/:game', function(req, res, next) {
     return next(err);
   }
   var options = games[game];
-  var readmePath = path.join(__dirname, 'docs', game, 'readme.txt');
-  fs.readFile(readmePath, function(err, readmeContents) {
-    res.render('play', {
-      game: game,
-      title: options.title,
-      term: options.term,
-      readme: readmeContents,
-    });
+  res.render('play', {
+    game: game,
+    title: options.title,
+    term: options.term,
   });
 });
 
