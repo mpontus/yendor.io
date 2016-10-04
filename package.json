@@ -30,6 +30,7 @@
     "serve-favicon": "~2.3.0",
     "session-file-store": "^0.2.1",
     "socket.io": "^1.4.8",
+    "socket.io-client": "^1.4.8",
     "term.js": "0.0.7"
   }
 }
